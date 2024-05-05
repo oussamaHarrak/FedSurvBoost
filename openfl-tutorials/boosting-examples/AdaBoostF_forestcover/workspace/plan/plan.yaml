@@ -1,0 +1,88 @@
+aggregator:
+  settings:
+    assigner: openfl.component.assigner.AdaBoostAssigner
+    best_state_path: save/best.pbuf
+    db_store_rounds: 1
+    init_state_path: save/init.pbuf
+    last_state_path: save/last.pbuf
+    nn: false
+    rounds_to_train: 3
+    write_logs: false
+  template: openfl.component.aggregator.Aggregator
+api_layer:
+  required_plugin_components:
+    serializer_plugin: openfl.plugins.interface_serializer.dill_serializer.DillSerializer
+  settings:
+    aggregation_function_interface_file: aggregation_function_obj.pkl
+    dataloader_interface_file: loader_obj.pkl
+    model_interface_file: model_obj.pkl
+    task_assigner_file: task_assigner_obj.pkl
+    tasks_interface_file: tasks_obj.pkl
+assigner:
+  settings:
+    task_groups:
+    - name: train_and_validate
+      percentage: 1.0
+      tasks:
+      - 1_train
+      - 2_weak_learners_validate
+      - 3_adaboost_update
+      - 4_adaboost_validate
+  template: openfl.component.assigner.AdaBoostAssigner
+collaborator:
+  settings:
+    db_store_rounds: 2
+    delta_updates: false
+    device_assignment_policy: CPU_ONLY
+    nn: false
+    opt_treatment: CONTINUE_GLOBAL
+  template: openfl.component.collaborator.Collaborator
+compression_pipeline:
+  settings:
+    nn: false
+  template: openfl.pipelines.GenericPipeline
+network:
+  settings:
+    agg_addr: localhost
+    agg_port: auto
+    cert_folder: cert
+    client_reconnect_interval: 5
+    disable_client_auth: false
+    hash_salt: auto
+    tls: false
+  template: openfl.federation.Network
+task_runner:
+  required_plugin_components:
+    framework_adapters: openfl.plugins.frameworks_adapters.generic_adapter.GenericAdapter
+  settings: {}
+  template: openfl.federated.task.runner_generic.GenericTaskRunner
+tasks:
+  1_train:
+    aggregation_type: openfl.interface.aggregation_functions.AggregateRandomForest
+    function: train_adaboost
+    kwargs:
+      apply: global
+      data: train
+      retrieve: weak_learner
+  2_weak_learners_validate:
+    aggregation_type: openfl.interface.aggregation_functions.AggregateAdaboost
+    function: validate_weak_learners
+    kwargs:
+      apply: global
+      data: train
+      retrieve: model
+    n_classes: 2
+  3_adaboost_update:
+    aggregation_type: openfl.interface.aggregation_functions.WeightedAverage
+    function: adaboost_update
+    kwargs:
+      apply: global
+      retrieve: adaboost_coeff
+  4_adaboost_validate:
+    aggregation_type: openfl.interface.aggregation_functions.WeightedAverage
+    function: validate_adaboost
+    kwargs:
+      apply: local
+      data: test
+      retrieve: adaboost
+  settings: {}
