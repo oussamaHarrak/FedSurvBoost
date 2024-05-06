@@ -152,7 +152,8 @@ class Collaborator:
     def run(self):
         """Run the collaborator."""
         if LOG_WANDB:
-            wandb.init(project='AdaBoost.F', entity='gmittone', group="Krvskp",
+            #AdaBoost.F
+            wandb.init(project='', group="Krvskp",
                        config={
                            "num_clients": 10,
                            "rounds": 300,
@@ -312,8 +313,9 @@ class Collaborator:
                 alpha = input_tensor_dict[0]
                 best_model = int(input_tensor_dict[1])
 
-                self.adaboost_coeff *= np.exp(alpha * self.errors[best_model])
-                self.adaboost_coeff /= np.linalg.norm(self.adaboost_coeff)
+                #self.adaboost_coeff *= np.exp(-alpha * self.errors[best_model])
+                self.adaboost_coeff *= alpha**(1-self.errors[best_model])
+                self.adaboost_coeff /= (np.linalg.norm(self.adaboost_coeff))
 
                 adaboost = self.tensor_db.get_tensor_from_cache(TensorKey(
                     'generic_model',
@@ -323,9 +325,9 @@ class Collaborator:
                     ('adaboost',)
                 ))
                 if adaboost is None:
-                    adaboost = self.model_buffer.replace(self.model_buffer.get(best_model), alpha)
+                    adaboost = self.model_buffer.replace(self.model_buffer.get(best_model), np.log(1/alpha))
                 else:
-                    adaboost.add(self.model_buffer.get(best_model), alpha)
+                    adaboost.add(self.model_buffer.get(best_model),np.log(1/alpha))
 
                 self.tensor_db.cache_tensor({TensorKey(
                     'generic_model',
