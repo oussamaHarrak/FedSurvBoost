@@ -12,13 +12,10 @@ class AggregateAdaboost(AggregationFunction):
 
     def call(self, local_tensors, *_):
         tensors = [x.tensor for x in local_tensors]
-
         errors = np.array([tensor[:-1] for tensor in tensors])
         norm = sum([tensor[-1] for tensor in tensors])
-        wl_errs = errors.sum(axis=0) / norm
-
+        wl_errs = errors.sum(axis=0) / (norm)
         best_model = wl_errs.argmin()
         epsilon = wl_errs.min()
-        alpha = np.log((1 - epsilon) / (epsilon + 1e-10)) + np.log(self.n_classes - 1)
-
+        alpha =(epsilon ) / (1 + 1e-10 - epsilon)
         return np.array([alpha, best_model])
